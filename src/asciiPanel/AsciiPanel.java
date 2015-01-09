@@ -1,106 +1,111 @@
 package asciiPanel;
 
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Image;
-import java.awt.image.BufferedImage;
-import java.awt.image.LookupOp;
-import java.awt.image.ShortLookupTable;
-import java.io.IOException;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.g2d.*;
 
-import javax.imageio.ImageIO;
-import javax.swing.JPanel;
+// import java.awt.Color;
+// import java.awt.Dimension;
+// import java.awt.Graphics;
+// import java.awt.Image;
+// import java.awt.image.BufferedImage;
+// import java.awt.image.LookupOp;
+// import java.awt.image.ShortLookupTable;
+// import java.io.IOException;
+// import javax.imageio.ImageIO;
+// import javax.swing.JPanel;
 
 /**
  * This simulates a code page 437 ASCII terminal display.
  * @author Trystan Spangler
  */
-public class AsciiPanel extends JPanel {
-	private static final long serialVersionUID = -4167851861147593092L;
+public class AsciiPanel extends ScreenAdapter {
+	private static final long serialVersionUID = 1;
 
     /**
      * The color black (pure black).
      */
-    public static Color black = new Color(0, 0, 0);
+    public static Color black = new Color(0, 0, 0, 1);
 
     /**
      * The color red.
      */
-    public static Color red = new Color(128, 0, 0);
+    public static Color red = new Color(0.5f, 0, 0, 1);
 
     /**
      * The color green.
      */
-    public static Color green = new Color(0, 128, 0);
+    public static Color green = new Color(0, 0.5f, 0, 1);
 
     /**
      * The color yellow.
      */
-    public static Color yellow = new Color(128, 128, 0);
+    public static Color yellow = new Color(0.5f, 0.5f, 0, 1);
 
     /**
      * The color blue.
      */
-    public static Color blue = new Color(0, 0, 128);
+    public static Color blue = new Color(0, 0, 0.5f, 1);
 
     /**
      * The color magenta.
      */
-    public static Color magenta = new Color(128, 0, 128);
+    public static Color magenta = new Color(0.5f, 0, 0.5f, 1);
 
     /**
      * The color cyan.
      */
-    public static Color cyan = new Color(0, 128, 128);
+    public static Color cyan = new Color(0, 0.5f, 0.5f, 1);
 
     /**
      * The color white (light gray).
      */
-    public static Color white = new Color(192, 192, 192);
+    public static Color white = new Color(0.75f, 0.75f, 0.75f, 1);
 
     /**
      * A brighter black (dark gray).
      */
-    public static Color brightBlack = new Color(128, 128, 128);
+    public static Color brightBlack = new Color(0.5f, 0.5f, 0.5f, 1);
 
     /**
      * A brighter red.
      */
-    public static Color brightRed = new Color(255, 0, 0);
+    public static Color brightRed = new Color(1, 0, 0, 1);
 
     /**
      * A brighter green.
      */
-    public static Color brightGreen = new Color(0, 255, 0);
+    public static Color brightGreen = new Color(0, 1, 0, 1);
 
     /**
      * A brighter yellow.
      */
-    public static Color brightYellow = new Color(255, 255, 0);
+    public static Color brightYellow = new Color(1, 1, 0, 1);
 
     /**
      * A brighter blue.
      */
-    public static Color brightBlue = new Color(0, 0, 255);
+    public static Color brightBlue = new Color(0, 0, 1, 1);
 
     /**
      * A brighter magenta.
      */
-    public static Color brightMagenta = new Color(255, 0, 255);
+    public static Color brightMagenta = new Color(1, 0, 1, 1);
 
     /**
      * A brighter cyan.
      */
-    public static Color brightCyan = new Color(0, 255, 255);
-    
+    public static Color brightCyan = new Color(0, 1, 1, 1);
+
     /**
      * A brighter white (pure white).
      */
-    public static Color brightWhite = new Color(255, 255, 255);
+    public static Color brightWhite = new Color(1, 1, 1, 1);
 
-    private Image offscreenBuffer;
-    private Graphics offscreenGraphics;
+	/* Original fields */
+    // private Image offscreenBuffer;
+    // private Graphics offscreenGraphics;
     private int widthInCharacters;
     private int heightInCharacters;
     private int charWidth = 9;
@@ -109,14 +114,82 @@ public class AsciiPanel extends JPanel {
     private Color defaultForegroundColor;
     private int cursorX;
     private int cursorY;
-    private BufferedImage glyphSprite;
-    private BufferedImage[] glyphs;
+    // private BufferedImage glyphSprite; // replaced by Texture
+    // private BufferedImage[] glyphs; // replaced by TextureRegion
     private char[][] chars;
     private Color[][] backgroundColors;
     private Color[][] foregroundColors;
     private char[][] oldChars;
     private Color[][] oldBackgroundColors;
     private Color[][] oldForegroundColors;
+
+	/* Ported fields */
+	private Viewport viewport;
+	private Camera camera;
+	private Texture glyphSprite;
+	private TextureRegion[] glyphs;
+	private SpriteBatch batch;
+	// for rendering background
+	private Texture backgroud;
+
+	/**
+	* Class constructor.
+	* Default size is 80x24.
+	*/
+	public AsciiPanel() {
+		this(80, 24);
+	}
+
+	/**
+	* Class constructor specifying the width and height in characters.
+	* @param width
+	* @param height
+	*/
+	public AsciiPanel(int width, int height) {
+		super();
+
+		if (width < 1){
+			throw new IllegalArgumentException("width " + width + " must be greater than 0." );
+		}
+
+		if (height < 1){
+			throw new IllegalArgumentException("height " + height + " must be greater than 0." );
+		}
+
+		widthInCharacters = width;
+		heightInCharacters = height;
+
+		this.camera = new OrthographicCamera();
+		this.viewport = new FitViewport(charWidth, charHeight, this.camera);
+		this.batch = new SpriteBatch();
+
+		Pixmap whitebackground = new Pixmap(charWidth, charHeight, Pixmap.Format.RGBA8888);
+		whitebackground.setColor(white);
+		whitebackground.fill();
+		this.backgroud = new Texture(whitebackground);
+		whitebackground.dispose();
+
+		defaultBackgroundColor = black;
+		defaultForegroundColor = white;
+
+		chars = new char[widthInCharacters][heightInCharacters];
+		backgroundColors = new Color[widthInCharacters][heightInCharacters];
+		foregroundColors = new Color[widthInCharacters][heightInCharacters];
+
+		oldChars = new char[widthInCharacters][heightInCharacters];
+		oldBackgroundColors = new Color[widthInCharacters][heightInCharacters];
+		oldForegroundColors = new Color[widthInCharacters][heightInCharacters];
+
+		glyphs = new TextureRegion[256];
+
+		loadGlyphs();
+
+		AsciiPanel.this.clear();
+	}
+
+	public void resize(int width, int height) {
+		this.viewport.update(width, height);
+	}
 
     /**
      * Gets the height, in pixels, of a character.
@@ -217,10 +290,12 @@ public class AsciiPanel extends JPanel {
      * @param defaultBackgroundColor
      */
     public void setDefaultBackgroundColor(Color defaultBackgroundColor) {
-        if (defaultBackgroundColor == null)
-            throw new NullPointerException("defaultBackgroundColor must not be null.");
-
-        this.defaultBackgroundColor = defaultBackgroundColor;
+        if (defaultBackgroundColor == null){
+            // throw new NullPointerException("defaultBackgroundColor must not be null.");
+			this.defaultBackgroundColor = black;
+		}else{
+        	this.defaultBackgroundColor = defaultBackgroundColor;
+		}
     }
 
     /**
@@ -236,113 +311,92 @@ public class AsciiPanel extends JPanel {
      * @param defaultForegroundColor
      */
     public void setDefaultForegroundColor(Color defaultForegroundColor) {
-        if (defaultForegroundColor == null)
-            throw new NullPointerException("defaultForegroundColor must not be null.");
-
-        this.defaultForegroundColor = defaultForegroundColor;
+        if (defaultForegroundColor == null){
+			this.defaultForegroundColor = white;
+		}else{
+			this.defaultForegroundColor = defaultForegroundColor;
+		}
     }
-
-    /**
-     * Class constructor.
-     * Default size is 80x24.
-     */
-    public AsciiPanel() {
-        this(80, 24);
-    }
-
-    /**
-     * Class constructor specifying the width and height in characters.
-     * @param width
-     * @param height
-     */
-    public AsciiPanel(int width, int height) {
-        super();
-
-        if (width < 1)
-            throw new IllegalArgumentException("width " + width + " must be greater than 0." );
-
-        if (height < 1)
-            throw new IllegalArgumentException("height " + height + " must be greater than 0." );
-
-        widthInCharacters = width;
-        heightInCharacters = height;
-        setPreferredSize(new Dimension(charWidth * widthInCharacters, charHeight * heightInCharacters));
-
-        defaultBackgroundColor = black;
-        defaultForegroundColor = white;
-
-        chars = new char[widthInCharacters][heightInCharacters];
-        backgroundColors = new Color[widthInCharacters][heightInCharacters];
-        foregroundColors = new Color[widthInCharacters][heightInCharacters];
-
-        oldChars = new char[widthInCharacters][heightInCharacters];
-        oldBackgroundColors = new Color[widthInCharacters][heightInCharacters];
-        oldForegroundColors = new Color[widthInCharacters][heightInCharacters];
-
-        glyphs = new BufferedImage[256];
-        
-        loadGlyphs();
-        
-        AsciiPanel.this.clear();
-    }
-    
-    @Override
-    public void update(Graphics g) {
-         paint(g); 
-    } 
 
     @Override
-    public void paint(Graphics g) {
-        if (g == null)
-            throw new NullPointerException();
-        
-        if (offscreenBuffer == null){
-            offscreenBuffer = createImage(this.getWidth(), this.getHeight()); 
-            offscreenGraphics = offscreenBuffer.getGraphics();
-        }
-        
-        for (int x = 0; x < widthInCharacters; x++) {
-            for (int y = 0; y < heightInCharacters; y++) {
-            	if (oldBackgroundColors[x][y] == backgroundColors[x][y]
-            	 && oldForegroundColors[x][y] == foregroundColors[x][y]
-            	 && oldChars[x][y] == chars[x][y])
-            		continue;
-            	
-                Color bg = backgroundColors[x][y];
-                Color fg = foregroundColors[x][y];
-
-                LookupOp op = setColors(bg, fg);
-                BufferedImage img = op.filter(glyphs[chars[x][y]], null);
-                offscreenGraphics.drawImage(img, x * charWidth, y * charHeight, null);
-                
-                oldBackgroundColors[x][y] = backgroundColors[x][y];
-        	    oldForegroundColors[x][y] = foregroundColors[x][y];
-        	    oldChars[x][y] = chars[x][y];
-            }
-        }
-        
-        g.drawImage(offscreenBuffer,0,0,this);
+    public void render(float delta) {
+        paint(delta);
+		batch.draw(frameBuffer.getColorBufferTexture(), 0, 0);
     }
+
+	public void paint(float delta){
+		if(frameBuffer == null){
+			frameBuffer = new FloatFrameBuffer(charWidth * widthInCharacters, charHeight * heightInCharacters, false);
+		}
+		frameBuffer.begin();
+		batch.setProjectionMatrix(camera.combined);
+		batch.begin();
+		for (int x = 0; x < widthInCharacters; x++) {
+			for (int y = 0; y < heightInCharacters; y++) {
+				if (oldBackgroundColors[x][y] == backgroundColors[x][y]
+				&& oldForegroundColors[x][y] == foregroundColors[x][y]
+				&& oldChars[x][y] == chars[x][y]){
+					continue;
+				}
+				Color bg = backgroundColors[x][y];
+				Color fg = foregroundColors[x][y];
+
+				Texture backgroud = new Texture();
+				batch.setColor(bg);
+				batch.draw(background, x * charWidth, y * charHeight);
+				batch.setColor(fg);
+				batch.draw(glyphs[chars[x][y]], x * charWidth, y * charHeight);
+
+				oldBackgroundColors[x][y] = backgroundColors[x][y];
+				oldForegroundColors[x][y] = foregroundColors[x][y];
+				oldChars[x][y] = chars[x][y];
+			}
+		}
+		batch.end();
+		frameBuffer.end();
+	}
 
     private void loadGlyphs() {
-        try {
-            glyphSprite = ImageIO.read(AsciiPanel.class.getResource("cp437.png"));
-        } catch (IOException e) {
-            System.err.println("loadGlyphs(): " + e.getMessage());
-        }
+		// replace the string with the file's actually path (relative to working directory, which in default is "assets/").
+		Pixmap pixmap = new Pixmap(Gdx.files.internal("texture/cp437.png"));
+
+		// transfer the image into white-alpha
+		ByteBuffer buffer = pixmap.getPixels();
+		buffer.rewind();
+		while(buffer.hasRemaining()){
+			buffer.mark();
+			byte r = buffer.get();
+			byte g = buffer.get();
+			byte b = buffer.get();
+			byte a = buffer.get();
+			if(r | g | b == 0){
+				a = 0;
+			}else{
+				r = 255;
+				g = 255;
+				b = 255;
+			}
+			buffer.reset();
+			buffer.put(r);
+			buffer.put(g);
+			buffer.put(b);
+			buffer.put(a);
+		}
+
+        glyphSprite = new Texture(pixmap);
 
         for (int i = 0; i < 256; i++) {
-            int sx = (i % 32) * charWidth + 8;
-            int sy = (i / 32) * charHeight + 8;
+            int startX = (i % 32) * charWidth + 8; // 8 is the padding, same below.
+            int startY = (i / 32) * charHeight + 8;
 
-            glyphs[i] = new BufferedImage(charWidth, charHeight, BufferedImage.TYPE_INT_ARGB);
-            glyphs[i].getGraphics().drawImage(glyphSprite, 0, 0, charWidth, charHeight, sx, sy, sx + charWidth, sy + charHeight, null);
+            glyphs[i] = new TextureRegion(glyphSprite, startX, startY, charWidth, charHeight);
         }
+		pixmap.dispose();
     }
-    
+
     /**
-     * Create a <code>LookupOp</code> object (lookup table) mapping the original 
-     * pixels to the background and foreground colors, respectively. 
+     * Create a <code>LookupOp</code> object (lookup table) mapping the original
+     * pixels to the background and foreground colors, respectively.
      * @param bgColor the background color
      * @param fgColor the foreground color
      * @return the <code>LookupOp</code> object (lookup table)
@@ -718,7 +772,7 @@ public class AsciiPanel extends JPanel {
     public AsciiPanel write(String string, int x, int y, Color foreground, Color background) {
         if (string == null)
             throw new NullPointerException("string must not be null." );
-        
+
         if (x + string.length() >= widthInCharacters)
             throw new IllegalArgumentException("x + string.length() " + (x + string.length()) + " must be less than " + widthInCharacters + "." );
 
@@ -802,7 +856,7 @@ public class AsciiPanel extends JPanel {
             throw new IllegalArgumentException("string.length() " + string.length() + " must be less than " + widthInCharacters + "." );
 
         int x = (widthInCharacters - string.length()) / 2;
-        
+
         if (y < 0 || y >= heightInCharacters)
             throw new IllegalArgumentException("y " + y + " must be within range [0," + heightInCharacters + ")." );
 
@@ -817,28 +871,28 @@ public class AsciiPanel extends JPanel {
         }
         return this;
     }
-    
+
     public void withEachTile(TileTransformer transformer){
 		withEachTile(0, 0, widthInCharacters, heightInCharacters, transformer);
     }
-    
+
     public void withEachTile(int left, int top, int width, int height, TileTransformer transformer){
 		AsciiCharacterData data = new AsciiCharacterData();
-		
+
     	for (int x0 = 0; x0 < width; x0++)
     	for (int y0 = 0; y0 < height; y0++){
     		int x = left + x0;
     		int y = top + y0;
-    		
+
     		if (x < 0 || y < 0 || x >= widthInCharacters || y >= heightInCharacters)
     			continue;
-    		
+
     		data.character = chars[x][y];
     		data.foregroundColor = foregroundColors[x][y];
     		data.backgroundColor = backgroundColors[x][y];
-    		
+
     		transformer.transformTile(x, y, data);
-    		
+
     		chars[x][y] = data.character;
     		foregroundColors[x][y] = data.foregroundColor;
     		backgroundColors[x][y] = data.backgroundColor;

@@ -1,6 +1,6 @@
 package asciiPanel;
 
-import java.awt.Color;
+import com.badlogic.gdx.graphics.Color;
 
 public class AsciiCharacterData {
 	public char character;

@@ -10,4 +10,8 @@ Windows Command Prompt are provided.
 
 This should be useful to roguelike developers.
 
-TODO: libgdx port
+AsciiScreen
+----------
+A libgdx port of AsciiPanel.
+
+Modify the font file location string in AsciiScreen.java before use.
